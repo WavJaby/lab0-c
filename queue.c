@@ -18,6 +18,20 @@ static inline element_t *create_element(char *s)
     return element;
 }
 
+static inline struct list_head *_q_find_mid(struct list_head *left,
+                                            struct list_head *right)
+{
+    while (left != right) {
+        left = left->next;
+        // When there are an even number of nodes, select next first
+        if (right == left)
+            break;
+        right = right->prev;
+    }
+
+    return left;
+}
+
 
 /* Create an empty queue */
 struct list_head *q_new()
@@ -119,7 +133,13 @@ int q_size(struct list_head *head)
 /* Delete the middle node in queue */
 bool q_delete_mid(struct list_head *head)
 {
-    // https://leetcode.com/problems/delete-the-middle-node-of-a-linked-list/
+    if (!head || list_empty(head))
+        return false;
+
+    struct list_head *mid = _q_find_mid(head->next, head->prev);
+    list_del(mid);
+    q_release_element(list_entry(mid, element_t, list));
+
     return true;
 }
 
