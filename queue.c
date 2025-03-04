@@ -4,6 +4,9 @@
 
 #include "queue.h"
 
+#define element_prev(node, member) \
+    list_entry(node->member.prev, typeof(*node), member)
+
 static inline element_t *create_element(char *s)
 {
     element_t *element = malloc(sizeof(element_t));
@@ -32,6 +35,27 @@ static inline struct list_head *_q_find_mid(struct list_head *left,
     return left;
 }
 
+static inline int _q_value_cmpare(char *a, char *b, bool descend)
+{
+    return descend ? strcmp(b, a) : strcmp(a, b);
+}
+
+static inline void _q_remove_not_in_order(struct list_head *head, bool descend)
+{
+    element_t *last = list_first_entry(head, element_t, list), *curr, *tmp;
+
+    list_for_each_entry (curr, head, list) {
+        // Remove all element start from end that not in order
+        while (&last->list != head &&
+               _q_value_cmpare(curr->value, last->value, descend) < 0) {
+            tmp = element_prev(last, list);
+            list_del(&last->list);
+            q_release_element(last);
+            last = tmp;
+        }
+        last = curr;
+    }
+}
 
 /* Create an empty queue */
 struct list_head *q_new()
@@ -189,16 +213,28 @@ void q_sort(struct list_head *head, bool descend) {}
  * the right side of it */
 int q_ascend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+    if (list_is_singular(head))
+        return 1;
+
+    _q_remove_not_in_order(head, false);
+
+    return q_size(head);
 }
 
 /* Remove every node which has a node with a strictly greater value anywhere to
  * the right side of it */
 int q_descend(struct list_head *head)
 {
-    // https://leetcode.com/problems/remove-nodes-from-linked-list/
-    return 0;
+    if (!head || list_empty(head))
+        return 0;
+    if (list_is_singular(head))
+        return 1;
+
+    _q_remove_not_in_order(head, true);
+
+    return q_size(head);
 }
 
 /* Merge all the queues into one sorted queue, which is in ascending/descending
