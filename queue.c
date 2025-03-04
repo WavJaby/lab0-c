@@ -40,6 +40,64 @@ static inline int _q_value_cmpare(char *a, char *b, bool descend)
     return descend ? strcmp(b, a) : strcmp(a, b);
 }
 
+void _q_merge(struct list_head *l_head, struct list_head *r_head, bool descend)
+{
+    element_t *l = list_first_entry(l_head, element_t, list);
+
+    while (!list_empty(r_head)) {
+        // Grab next r element
+        element_t *r = list_first_entry(r_head, element_t, list);
+        // Compare l and r element value,
+        // if l element is in the correct position(dont need to swap),
+        // skip until the element need to swap
+        while (&l->list != l_head &&
+               _q_value_cmpare(l->value, r->value, descend) <= 0)
+            l = list_entry(l->list.next, element_t, list);
+        // If all left list elements are in the correct position,
+        // means that the entire list is sorted,
+        // can directly append right list to left,
+        // Increase sorting speed.
+        if (&l->list == l_head) {
+            // Append right list to left list
+            l_head->prev->next = r_head->next;
+            r_head->next->prev = l_head->prev;
+
+            r_head->prev->next = l_head;
+            l_head->prev = r_head->prev;
+
+            INIT_LIST_HEAD(r_head);
+            break;
+        }
+
+        // Insert r node before l node
+        list_move_tail(r_head->next, &l->list);
+    }
+}
+
+void _q_merge_sort(struct list_head *head, bool descend)
+{
+    if (list_is_singular(head))
+        return;
+
+    struct list_head *l = head, *r = &(struct list_head) {},
+                     *mid = _q_find_mid(head->next, head->prev),
+                     *l_end = mid->prev;
+
+    // Split list from mid
+    r->next = mid;
+    mid->prev = r;
+    r->prev = l->prev;  // Last node from list head
+    l->prev->next = r;
+
+    l->prev = l_end;
+    l_end->next = l;
+
+    _q_merge_sort(l, descend);
+    _q_merge_sort(r, descend);
+
+    _q_merge(l, r, descend);
+}
+
 static inline void _q_remove_not_in_order(struct list_head *head, bool descend)
 {
     element_t *last = list_first_entry(head, element_t, list), *curr, *tmp;
@@ -243,7 +301,12 @@ void q_reverseK(struct list_head *head, int k)
 }
 
 /* Sort elements of queue in ascending/descending order */
-void q_sort(struct list_head *head, bool descend) {}
+void q_sort(struct list_head *head, bool descend)
+{
+    if (!head || list_empty(head))
+        return;
+    _q_merge_sort(head, descend);
+}
 
 /* Remove every node which has a node with a strictly less value anywhere to
  * the right side of it */
