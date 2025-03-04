@@ -4,6 +4,9 @@
 
 #include "queue.h"
 
+#define element_next(node, member) \
+    list_entry(node->member.next, typeof(*node), member)
+
 #define element_prev(node, member) \
     list_entry(node->member.prev, typeof(*node), member)
 
@@ -340,6 +343,12 @@ int q_descend(struct list_head *head)
  * order */
 int q_merge(struct list_head *head, bool descend)
 {
-    // https://leetcode.com/problems/merge-k-sorted-lists/
-    return 0;
+    queue_contex_t *out = list_first_entry(head, queue_contex_t, chain), *node;
+
+    for (node = element_next(out, chain); &node->chain != head;
+         node = element_next(node, chain)) {
+        _q_merge(out->q, node->q, descend);
+    }
+
+    return q_size(out->q);
 }
