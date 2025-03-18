@@ -259,12 +259,20 @@ void q_swap(struct list_head *head)
     if (!head || list_empty(head))
         return;
 
-    struct list_head *node, *next;
-    list_for_each_safe (node, next, head) {
-        if (next == head)
-            break;
-        list_move(node, next);
-        next = node->next;
+    struct list_head *node = head->next, *next = node->next, *cache;
+    for (; node != head && next != head; node = cache, next = cache->next) {
+        cache = next->next;
+
+        struct list_head *node_prev = node->prev, *node_next = next->next;
+        // Update neighbor node
+        node_prev->next = next;
+        node_next->prev = node;
+        // Move node position to next
+        node->prev = next;
+        node->next = node_next;
+        // Move next position to prev
+        next->next = node;
+        next->prev = node_prev;
     }
 }
 
