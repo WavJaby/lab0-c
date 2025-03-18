@@ -235,19 +235,27 @@ bool q_delete_dup(struct list_head *head)
         return false;
 
     element_t *curr, *next = NULL;
+    struct list_head *cache;
     bool dup = false;
     list_for_each_entry_safe (curr, next, head, list) {
-        // Check if pair is duplicate
-        if (&next->list != head && strcmp(curr->value, next->value) == 0) {
-            list_del(&curr->list);
-            q_release_element(curr);
+        // Find every duplicate element
+        while (&next->list != head && strcmp(curr->value, next->value) == 0) {
+            next = element_next(next, list);
             dup = true;
         }
-        // If last pair is duplicate string, remove the last duplicate
-        else if (dup) {
-            list_del(&curr->list);
-            q_release_element(curr);
+        // Delete all duplicate
+        if (dup) {
             dup = false;
+            // Connect not duplicate element
+            cache = curr->list.prev;
+            cache->next = &next->list;
+            next->list.prev = cache;
+            // Delete each duplicate element
+            for (; &curr->list != &next->list;
+                 curr = list_entry(cache, element_t, list)) {
+                cache = curr->list.next;
+                q_release_element(curr);
+            }
         }
     }
     return true;
