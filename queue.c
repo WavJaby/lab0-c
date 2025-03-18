@@ -274,9 +274,35 @@ void q_reverse(struct list_head *head)
     if (!head || list_empty(head))
         return;
 
-    struct list_head *node, *safe;
-    list_for_each_safe (node, safe, head)
-        list_move(node, head);
+    // Reverse the connection of all nodes
+    // Example.-----------.      .-----------.      .-----------.
+    //        | *n2 | *n1 |  ->  | *n0 | *n2 |  ->  | *n1 | *n0 |
+    //        |  n0(head) |  <-  |     n1    |  <-  |     n2    |
+    //        *-----------*      *-----------*      *-----------*
+    // 1.     .-----------.   *node-||-------.   *next-------||-.
+    //        | *n2 | *n1 |  ->  | *n2 | *n2 |  ->  | *n1 | *n1 |
+    //        |  n0(head) |  <-  |     n1    |  <-  |     n2    |
+    //        *-----------*      *-----------*      *-----------*
+    // 2.  *next-------||-.      .-----------.   *node-||-------.
+    //        | *n2 | *n2 |  ->  | *n2 | *n2 |  ->  | *n0 | *n1 |
+    //        |  n0(head) |  <-  |     n1    |  <-  |     n2    |
+    //        *-----------*      *-----------*      *-----------*
+    // 3.  *node-||-------.   *next-------||-.      .-----------.
+    //        | *n1 | *n2 |  ->  | *n2 | *n0 |  ->  | *n0 | *n1 |
+    //        |  n0(head) |  <-  |     n1    |  <-  |     n2    |
+    //        *-----------*      *-----------*      *-----------*
+    // 3.     .-----------.   *node-------!!-.   *next----------.
+    //        | *n1 | *n2 |  ->  | *n2 | *n0 |  ->  | *n0 | *n1 |
+    //        |  n0(head) |  <-  |     n1    |  <-  |     n2    |
+    //        *-----------*      *-----------*      *-----------*
+    // 4. Because `node->next == head`, loop break.
+
+    struct list_head *node = head->next, *next = node->next, *cache;
+    for (; node->next != head; node = next, next = cache) {
+        cache = next->next;
+        node->prev = next;
+        next->next = node;
+    }
 }
 
 /* Reverse the nodes of the list k at a time */
