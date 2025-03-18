@@ -319,21 +319,31 @@ void q_reverseK(struct list_head *head, int k)
     if (!head || list_empty(head) || k <= 1)
         return;
 
-    struct list_head *element = head->next, *next_element, *group_start = head,
-                     *curr, *next;
-    int count = 0;
-    list_for_each_safe (curr, next, head) {
-        // Go to group end
-        if (++count != k)
-            continue;
-        // Add elements to the front of group_start, erverse the group elements
-        while (count--) {
-            next_element = element->next;
-            list_move(element, group_start);
-            element = next_element;
+    struct list_head *next_gp = head->next, *curr, *node, *next, *cache;
+    while (true) {
+        curr = next_gp;
+        // Find next group start
+        int count = 0;
+        while (count++ != k) {
+            if (next_gp == head)
+                return;
+            next_gp = next_gp->next;
         }
-        // Set group start to next position
-        group_start = next->prev;
+        // Connect [current-group last-node].prev to [last-group last-node]
+        next_gp->prev->prev = curr->prev;
+        // Connect [last-group last-node].next to [current-group last-node]
+        curr->prev->next = next_gp->prev;
+        // Connect [next-group first-node].prev to [current-group first-node]
+        next_gp->prev = curr;
+        // Reverse connection
+        for (node = curr, next = node->next; next != next_gp;
+             node = next, next = cache) {
+            cache = next->next;
+            node->prev = next;
+            next->next = node;
+        }
+        // Connect [current-group first-node].next to [next-group first-node]
+        curr->next = next_gp;
     }
 }
 
